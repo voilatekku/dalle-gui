@@ -161,7 +161,6 @@ def main(gpt_api_link, api_key, model, prompt, hd, jb, size, style, count):
     images = []
     revised_prompts = ""
     count = int(count)
-    price = 0
 
     for i in range(count):
         # Check if a cancel has been requested before starting to process a new image.
@@ -183,14 +182,12 @@ def main(gpt_api_link, api_key, model, prompt, hd, jb, size, style, count):
         if success:
             image_history.insert(0, (img_final, prompt))
             image_history = image_history[:10]
-            price += utils.calculate_price(size, hd)
 
     _, total= load_config()
-    total += price
     save_config(api_key, total)
     print("Done")
     utils.play_sound(ding, args.no_sound)
-    return images, revised_prompts, f"Price for this batch: ${price:.2f}, Total generated: ${total:.2f}"
+    return images, revised_prompts, f"Total generated: ${total:.2f}"
 
 
 def refresh_history():
@@ -212,6 +209,11 @@ def update_size(model):
         return gr.update(value="1024x1024", choices=image_sizes[model])
 def update_gpt_api(gpt_api_link_input):
     if gpt_api_link_input=="others":
+        return gr.update(visible=True)
+    else:
+        return gr.update(visible=False)
+def update_HD(model):
+    if model == "dall-e-3":
         return gr.update(visible=True)
     else:
         return gr.update(visible=False)
@@ -244,6 +246,7 @@ with gr.Blocks(css=custom_css) as instance:
                 model_input=gr.Dropdown(label="Model", choices=["dall-e-3","dall-e-2"], value="dall-e-3", allow_custom_value=False)
                 prompt_input = gr.Textbox(label="Prompt", placeholder="Enter your prompt")
                 hd_input = gr.Checkbox(label="HD")
+                model_input.change(update_HD, inputs=model_input, outputs=hd_input)
                 jb_input = gr.Checkbox(label="JB", info="Makes the ai less likely to change your input. More likely to get filtered. Useful if you are using a revised prompt.")
                 size_input = gr.Dropdown(label="Size", choices=image_sizes["dall-e-3"], value=image_sizes["dall-e-3"][0], allow_custom_value=False)
                 model_input.change(update_size, inputs=model_input, outputs=size_input)
@@ -258,7 +261,6 @@ with gr.Blocks(css=custom_css) as instance:
             with gr.Column():
                 image_output = gr.Gallery()
                 revised_prompt_output = gr.Textbox(label="Revised Prompt", lines=10)
-                price_output = gr.Textbox(label="Price")
                 output_button = gr.Button("Show Output Folder")
     # with tab_metadata:
     #     with gr.Row():
@@ -286,7 +288,7 @@ with gr.Blocks(css=custom_css) as instance:
     generate_button.click(
         fn=main,
         inputs=[gpt_api_link_input, api_key_input, model_input, prompt_input, hd_input, jb_input, size_input, style_input, num_images_input],
-        outputs=[image_output, revised_prompt_output, price_output]
+        outputs=[image_output, revised_prompt_output]
     )
     cancel_button.click(
         fn=cancel_toggle
