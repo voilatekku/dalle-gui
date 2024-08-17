@@ -1,3 +1,9 @@
+---
+title: dalle-gui
+app_file: main.py
+sdk: gradio
+sdk_version: 4.41.0
+---
 **本教程采用中文**
 
 **[English version of the tutorial, click here](./english.md)**
